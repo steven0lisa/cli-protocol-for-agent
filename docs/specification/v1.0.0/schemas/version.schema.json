@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://http-cli.dev/schemas/v1.0.0/version.schema.json",
+  "title": "HTTP CLI standard version surface",
+  "description": "Shapes of the data payloads returned by the standard version commands: /version/current (a version object) and /version/releases (an array of release objects, newest first).",
+  "$defs": {
+    "versionObject": {
+      "type": "object",
+      "required": ["protocol_version", "server_version", "released_at"],
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "description": "Protocol version implemented. Must agree with root help's protocol_version."
+        },
+        "server_version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "description": "Implementation version. Must agree with root help's server_version when both are present."
+        },
+        "released_at": {
+          "type": "string",
+          "description": "RFC 3339 UTC timestamp of this release, e.g. 2026-10-14T08:00:00Z."
+        },
+        "build": {
+          "type": "string",
+          "description": "Build identifier."
+        },
+        "channel": {
+          "type": "string",
+          "description": "Release channel, e.g. stable, beta."
+        },
+        "commit": {
+          "type": "string",
+          "description": "Source revision of the build."
+        }
+      },
+      "additionalProperties": true
+    },
+    "releaseObject": {
+      "type": "object",
+      "required": ["version", "released_at", "summary"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "description": "Release version (semver)."
+        },
+        "released_at": {
+          "type": "string",
+          "description": "RFC 3339 UTC timestamp of the release."
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "description": "One-line description of the release."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Release notes body, Markdown."
+        },
+        "yanked": {
+          "type": "boolean",
+          "description": "True when the release was withdrawn."
+        }
+      },
+      "additionalProperties": true
+    },
+    "releasesList": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/releaseObject" },
+      "description": "Release objects, newest first. 'releases?since=<v>' returns only releases newer than <v>; when <v> is the current version the list is empty."
+    }
+  }
+}

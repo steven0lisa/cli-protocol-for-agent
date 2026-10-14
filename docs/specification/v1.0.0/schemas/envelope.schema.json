@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://http-cli.dev/schemas/v1.0.0/envelope.schema.json",
+  "title": "HTTP CLI response envelope",
+  "description": "Top-level shape of every HTTP CLI response body. Exactly one of data or error is present (data may be null on 204-less empty results).",
+  "type": "object",
+  "oneOf": [
+    {
+      "title": "Success envelope",
+      "required": ["data"],
+      "properties": {
+        "data": {
+          "description": "Result payload: object, array, scalar, or null. Help documents are delivered here."
+        },
+        "meta": {
+          "type": "object",
+          "description": "Non-semantic metadata (request_id, pagination). Clients must ignore unknown keys.",
+          "properties": {
+            "request_id": { "type": "string" },
+            "page": { "type": "integer", "minimum": 1 },
+            "limit": { "type": "integer", "minimum": 1 },
+            "offset": { "type": "integer", "minimum": 0 },
+            "total": { "type": "integer", "minimum": 0 },
+            "has_more": { "type": "boolean" },
+            "retry_after_seconds": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "Error envelope",
+      "required": ["error"],
+      "properties": {
+        "error": { "$ref": "#/$defs/errorObject" }
+      },
+      "additionalProperties": false
+    }
+  ],
+  "$defs": {
+    "errorObject": {
+      "type": "object",
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "description": "Stable machine-readable identifier. Standard codes: invalid_param, missing_param, bad_body, unauthorized, forbidden, unknown_command, not_found, method_not_allowed, conflict, payload_too_large, unsupported_media_type, rate_limited, internal_error."
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable explanation."
+        },
+        "hint": {
+          "type": "string",
+          "description": "Actionable next step. Recommended on every client-fixable error. Must not leak secrets or other tenants' data."
+        },
+        "details": {
+          "type": "object",
+          "description": "Structured context, e.g. the offending parameter name.",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
