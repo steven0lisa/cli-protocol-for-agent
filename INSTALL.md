@@ -1,7 +1,9 @@
 # INSTALL — Implementation Guide for AI Agents
 
 This guide is written for AI agents. You are here because a developer asked you
-to **implement the HTTP CLI protocol for their system**. Follow the steps in
+to **implement a CLI Protocol Family spec for their system**. The five-step
+walkthrough below details **HTTP CLI**; Web, Android, and Electron CLI share
+the same machinery (see *Choosing your protocol*). Follow the steps in
 order. Do not skip Step 1, and do not start coding before Step 2's questions
 have been answered by the user.
 
@@ -14,6 +16,26 @@ Step 5  Write the sync-maintenance contract into AGENTS.md / CLAUDE.md  (require
 ```
 
 ---
+
+## Choosing your protocol
+
+The CLI Protocol Family covers four runtimes. Pick by where the target system
+lives; all four share one machinery — self-describing command tree,
+progressive help, one envelope, descriptor-based semantics, auto-increment
+ids, and a bounded async model (see
+[cli-family.md](docs/specification/v1.0.0/cli-family.md) for the shared
+nomenclature and recommended architecture).
+
+| Your system is a… | Protocol | Specification | Implementation guide |
+|-------------------|----------|---------------|----------------------|
+| Network service (HTTP API) | **HTTP CLI** | [v1.0.0](docs/specification/v1.0.0/http-cli.md) | **This document (Steps 1–5 below)** |
+| Web page / SPA | **Web CLI** | [v1.0.0](docs/specification/v1.0.0/web-cli.md) | Spec § Integration guide |
+| Android app | **Android CLI** | [v1.0.0](docs/specification/v1.0.0/android-cli.md) | Spec § Integration guide |
+| Electron desktop app | **Electron CLI** | [v1.0.0](docs/specification/v1.0.0/electron-cli.md) | Spec § Integration guide |
+
+The five steps below walk through **HTTP CLI** in detail. The sibling
+protocols apply the same steps with a different transport and adapters — see
+the *Implementing the sibling protocols* section at the end.
 
 ## Step 1 — Read the specification and understand the background
 
@@ -190,6 +212,39 @@ Why this works: the contract turns "code changed, CLI didn't" into something
 the next reviewing agent sees immediately in its context, instead of a bug
 users discover later. If your CI can run the conformance suite, add that as a
 gate too — process beats memory.
+
+---
+
+## Implementing the sibling protocols (Web / Android / Electron CLI)
+
+The same five steps apply; here is how each maps onto an in-app protocol:
+
+| Step | HTTP CLI (steps above) | Web / Android / Electron CLI |
+|------|------------------------|------------------------------|
+| 1 Read | `http-cli.md` | The sibling spec + [cli-family.md](docs/specification/v1.0.0/cli-family.md) nomenclature |
+| 2 Inventory | API surface → modules → operations | UI surface: screens/windows/components + exposed actions. The descriptor set *is* the inventory — confirm it with the user the same way |
+| 3 Implement | Command tree over HTTP | Install the runtime; register descriptors + function bindings; wire the adapter (React/Vue, View/Compose, web/shell) |
+| 4 Verify | `conformance/run.py` | The spec's conformance checklist probes (`/version/current`, `help /`, `/comp/get` round-trip, write gating) |
+| 5 Sync contract | `AGENTS.md` / `CLAUDE.md` template above | The same contract: record the registry/descriptor location and the "update descriptors in the same change as the code" rule |
+
+Per-protocol notes:
+
+- **Web CLI** — the kernel installs `globalThis.__WEB_CLI__` in the page's
+  **main world** (bundle it with renderer code; an isolated preload is not
+  enough for framework introspection). Descriptors are JSON data and MUST
+  survive minification. Production profile read-only.
+- **Android CLI** — runtime module plus a bridge (abstract local socket,
+  reached via `adb forward`); View/Compose adapters; ids scoped to the app
+  process; release profile read-only.
+- **Electron CLI** — main-process runtime plus a loopback bridge and
+  discovery file; the renderer surface is Web CLI scoped per window (`win`
+  parameter); dispatch MUST be allowlisted to the command tree — no raw IPC
+  passthrough.
+
+Across all four protocols: help is generated from the dispatch registry
+(never hand-written), writes require `confirm: true`, and every call is
+bounded by `timeout`. The sync contract applies to descriptors exactly as it
+applies to the HTTP command tree.
 
 ---
 
