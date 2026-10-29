@@ -1,0 +1,301 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://electron-cli.dev/schemas/v1.0.0/electron-descriptor.schema.json",
+  "title": "Electron CLI component descriptor",
+  "description": "Serialized form of a window/component/hook/module descriptor: author-written semantics (purpose, props, exposed functions, error codes, i18n metadata) injected into the compiled build's registry. Runtime function bindings are intentionally not serializable and are not part of this schema.",
+  "type": "object",
+  "required": ["id", "name", "kind", "summary"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$",
+      "description": "Stable identifier, unique within the registry."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable name (component, window, or module name)."
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["component", "window", "hook", "module"],
+      "description": "What the descriptor documents: a renderer component, a window, a hook, or a non-UI module."
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120,
+      "description": "One-line purpose."
+    },
+    "description": {
+      "type": "string",
+      "description": "Long form: behavior, edge cases, composition."
+    },
+    "version": {
+      "type": "string",
+      "description": "Descriptor version (semver recommended), independent of app version."
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Free-form labels for search (/comp/find?tag=)."
+    },
+    "props": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/propDescriptor" },
+      "description": "Input parameters (attributes)."
+    },
+    "state": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/stateDescriptor" },
+      "description": "Exposed internal state entries readable via /comp/state."
+    },
+    "functions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/functionDescriptor" },
+      "description": "Actions the object exposes for invocation via /comp/call."
+    },
+    "error_codes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/errorDescriptor" },
+      "description": "Error codes this component/function family may return."
+    },
+    "i18n": {
+      "type": "object",
+      "required": ["default_locale", "locales"],
+      "properties": {
+        "default_locale": {
+          "type": "string",
+          "description": "BCP-47 tag of the base language of unlocalized text fields."
+        },
+        "locales": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "BCP-47 tags the component itself supports at runtime."
+        }
+      },
+      "additionalProperties": false
+    },
+    "deprecated": { "$ref": "#/$defs/deprecated" }
+  },
+  "patternProperties": {
+    "^.*_i18n$": {
+      "type": "object",
+      "description": "Localized overrides for the sibling text field: locale tag -> translation.",
+      "additionalProperties": { "type": "string" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "valueType": {
+      "type": "string",
+      "enum": [
+        "string", "integer", "number", "boolean", "enum",
+        "array", "object", "function", "element", "node", "any"
+      ]
+    },
+    "propDescriptor": {
+      "type": "object",
+      "required": ["name", "type", "description"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+          "description": "Prop name."
+        },
+        "type": { "$ref": "#/$defs/valueType" },
+        "required": { "type": "boolean", "default": false },
+        "default": {
+          "description": "Default value, native JSON type. Absence means no default."
+        },
+        "enum": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Required when type is 'enum'; must be absent otherwise."
+        },
+        "description": { "type": "string", "minLength": 1 },
+        "readonly": {
+          "type": "boolean",
+          "default": false,
+          "description": "true when /comp/set must refuse writes to this prop."
+        },
+        "example": {
+          "description": "A representative value."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "type": { "const": "enum" } },
+            "required": ["type"]
+          },
+          "then": { "required": ["enum"] },
+          "else": { "not": { "required": ["enum"] } }
+        }
+      ],
+      "patternProperties": {
+        "^.*_i18n$": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "stateDescriptor": {
+      "type": "object",
+      "required": ["name", "type", "description"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+        },
+        "type": { "$ref": "#/$defs/valueType" },
+        "description": { "type": "string", "minLength": 1 },
+        "readonly": { "type": "boolean", "default": true }
+      },
+      "patternProperties": {
+        "^.*_i18n$": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "paramDescriptor": {
+      "type": "object",
+      "required": ["name", "type", "description"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+        },
+        "type": { "$ref": "#/$defs/valueType" },
+        "required": { "type": "boolean", "default": false },
+        "default": {
+          "description": "Default value, native JSON type."
+        },
+        "enum": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Required when type is 'enum'; must be absent otherwise."
+        },
+        "description": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "type": { "const": "enum" } },
+            "required": ["type"]
+          },
+          "then": { "required": ["enum"] },
+          "else": { "not": { "required": ["enum"] } }
+        }
+      ],
+      "patternProperties": {
+        "^.*_i18n$": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "functionDescriptor": {
+      "type": "object",
+      "required": ["name", "summary", "effects", "returns"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+        },
+        "summary": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" },
+        "params": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/paramDescriptor" }
+        },
+        "returns": {
+          "type": "object",
+          "required": ["type", "description"],
+          "properties": {
+            "type": { "$ref": "#/$defs/valueType" },
+            "description": { "type": "string", "minLength": 1 }
+          },
+          "additionalProperties": false
+        },
+        "effects": {
+          "type": "string",
+          "enum": ["none", "read", "write"],
+          "description": "Side-effect class of the action itself; gates /comp/call confirmation."
+        },
+        "async": {
+          "type": "boolean",
+          "default": false,
+          "description": "true when the binding is asynchronous; /comp/call awaits the resolved value, bounded by timeout."
+        },
+        "timeout_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Recommended await bound for this function in milliseconds; the runtime default applies when absent."
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*(/[a-z][a-z0-9_]*)*$"
+          },
+          "description": "Error codes this function may return (see error_codes)."
+        },
+        "deprecated": { "$ref": "#/$defs/deprecated" }
+      },
+      "patternProperties": {
+        "^.*_i18n$": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "errorDescriptor": {
+      "type": "object",
+      "required": ["code", "summary"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*(/[a-z][a-z0-9_]*)*$",
+          "description": "Stable identifier. Custom codes should be namespaced '<scope>/<code>'; bare codes are reserved for the standard table."
+        },
+        "summary": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" },
+        "hint": { "type": "string" }
+      },
+      "patternProperties": {
+        "^.*_i18n$": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "deprecated": {
+      "type": "object",
+      "required": ["note"],
+      "properties": {
+        "use_instead": {
+          "type": "string",
+          "description": "id of the replacement descriptor, if any."
+        },
+        "note": {
+          "type": "string",
+          "description": "Deprecation rationale and removal plan."
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
