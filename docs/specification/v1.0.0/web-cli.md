@@ -28,7 +28,8 @@ Web CLI is the sibling of the [HTTP CLI Protocol](http-cli.md). The two share
 one output envelope, one error model, one progressive-help philosophy, and one
 versioning discipline; where this document restates a shared mechanism it is
 normative for Web CLI, and the HTTP CLI document remains the reference for the
-shared envelope shape (`schemas/envelope.schema.json`).
+shared envelope shape (`schemas/envelope.schema.json`). Shared standard
+nomenclature and recommended implementation architecture: [cli-family.md](cli-family.md).
 
 ### Design goals
 
@@ -578,7 +579,7 @@ inline the nested tree or parameter schemas. A client discovers grandchildren
 by requesting the child's own help.
 
 The root group help additionally MAY carry `protocol_version`,
-`runtime_version`, `adapter`, `origin`, and `capabilities`
+`runtime_version`, `adapters`, `origin`, and `capabilities`
 (see [Capability negotiation](#capability-negotiation)).
 
 ### Command help
@@ -890,7 +891,7 @@ No parameters. Returns:
 |-------|-------------|
 | `protocol_version` | REQUIRED. Protocol version implemented (semver). |
 | `runtime_version` | REQUIRED. Runtime/implementation version (semver). |
-| `adapter` | OPTIONAL. Framework adapter in effect: `react`, `vue`, `vanilla`, … |
+| `adapters` | OPTIONAL. UI toolkit adapters in effect: `["react"]`, `["vue"]`, … |
 | `origin` | REQUIRED. `declared` or `inferred` (dominant mode; nodes may still differ). |
 | `capabilities` | REQUIRED. Array of capability strings (see [Capability negotiation](#capability-negotiation)). |
 | `created_at` | OPTIONAL. RFC 3339 UTC timestamp of runtime installation. |
@@ -1343,7 +1344,7 @@ const cli = globalThis.__WEB_CLI__;                       // → present
 // 1. Negotiation
 await cli.exec("/version/current");
 // → { "data": { "protocol_version": "1.0.0", "runtime_version": "1.0.0",
-//       "adapter": "react", "origin": "declared",
+//       "adapters": ["react"], "origin": "declared",
 //       "capabilities": ["dom","comp","style","declared","write","wait"] } }
 
 // 2. Root map

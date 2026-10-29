@@ -149,9 +149,10 @@
           "type": "string",
           "description": "Root help only: runtime implementation version (semver)."
         },
-        "adapter": {
-          "type": "string",
-          "description": "Root help only: framework adapter in effect (react, vue, vanilla, …)."
+        "adapters": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Root help only: UI toolkit adapters in effect (react, vue, …)."
         },
         "origin": {
           "type": "string",
