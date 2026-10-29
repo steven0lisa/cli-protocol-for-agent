@@ -1,4 +1,4 @@
-# HTTP CLI 协议
+# CLI 协议家族
 
 [![规范版本](https://img.shields.io/badge/spec-v1.0.0-blue)](docs/specification/v1.0.0/http-cli.md)
 [![状态](https://img.shields.io/badge/status-draft-orange)](docs/specification/v1.0.0/http-cli.md)
@@ -7,14 +7,31 @@
 
 [English](README.md) | **简体中文**
 
-> **HTTP CLI** —— 将系统能力以"自描述、help 驱动的命令树"形式通过纯 HTTP
-> 暴露出来的协议规范。
+> **CLI 协议家族** —— 让 AI Agent 以"自描述、help 驱动的命令树"探索并操作
+> 陌生系统的协议族：**HTTP CLI**（网络服务）、**Web CLI**（Web 页面）、
+> **Android CLI**（Android 应用）、**Electron CLI**（桌面应用）。
 
-**状态：** Draft · **版本：** [1.0.0](docs/specification/v1.0.0/http-cli.md)
+**状态：** Draft · **版本：** 1.0.0（全部规范）
 
 想象一个传统 CLI：一棵命令树，每个命令有 `--help`，每一层为下一层做索引。
 本协议把这种体验映射到 HTTP 上——让 AI Agent（以及人类）只需一个 HTTP 客户端
 加一个凭证，就能探索并操作一个陌生系统，同时把上下文窗口的消耗降到最低。
+
+## 协议家族
+
+HTTP CLI 是协议家族的一员——四份姊妹规范共享同一套机制：自描述命令树、
+渐进式 help、统一信封与错误模型、自增 id 身份模型、有界的 settle 感知
+异步模型：
+
+| 协议 | 目标运行时 | 传输 | 调用面 | 规范 |
+|------|-----------|------|--------|------|
+| **HTTP CLI** | 网络服务 | HTTP | URL 路径命令树 + `?help` | [v1.0.0](docs/specification/v1.0.0/http-cli.md) |
+| **Web CLI** | Web 页面运行时 | 页面内 JavaScript | `exec()` / `help()` 方法 | [v1.0.0](docs/specification/v1.0.0/web-cli.md) |
+| **Android CLI** | Android 应用运行时 | ADB 桥接 | 调用对象（`exec` / `help` / `cancel`） | [v1.0.0](docs/specification/v1.0.0/android-cli.md) |
+| **Electron CLI** | Electron 应用运行时 | 本地回环桥接 | 调用对象（`exec` / `help` / `cancel`） | [v1.0.0](docs/specification/v1.0.0/electron-cli.md) |
+| **CLI 家族** | — | — | 统一标准名词表 + 推荐实践架构 | [v1.0.0](docs/specification/v1.0.0/cli-family.md) |
+
+（各协议规范正文均为英文。）
 
 ## 动机
 
@@ -67,8 +84,10 @@ GET {base}/version/releases?since=0.1.0 → 自某版本以来的更新
 
 | 文档 | 说明 |
 |------|------|
-| [**协议规范 v1.0.0**](docs/specification/v1.0.0/http-cli.md)（英文） | 规范正文：命令树、help、信封、鉴权、版本化、符合性。 |
-| [Schemas](docs/specification/v1.0.0/schemas/) | 机器可读 JSON Schema：信封、help 文档、参数描述符、版本面。 |
+| [**HTTP CLI 协议规范 v1.0.0**](docs/specification/v1.0.0/http-cli.md)（英文） | 规范正文：命令树、help、信封、鉴权、版本化、符合性。 |
+| [Web / Android / Electron CLI v1.0.0](docs/specification/v1.0.0/) | 三份姊妹规范：Web 页面、Android 应用、Electron 桌面应用运行时（见上文协议家族表）。 |
+| [CLI 家族 v1.0.0](docs/specification/v1.0.0/cli-family.md) | 统一标准名词表 + 推荐实践架构设计。 |
+| [Schemas](docs/specification/v1.0.0/schemas/) | 机器可读 JSON Schema：信封、help 文档、参数与组件描述符。 |
 | [Changelog](CHANGELOG.md) | 版本历史与升版规则。 |
 | [Contributing](CONTRIBUTING.md) | 变更流程、版本与弃用策略、编辑规范。 |
 

@@ -1,14 +1,16 @@
-# HTTP CLI Protocol
+# CLI Protocol Family
 
 [![Spec version](https://img.shields.io/badge/spec-v1.0.0-blue)](docs/specification/v1.0.0/http-cli.md)
 [![Status](https://img.shields.io/badge/status-draft-orange)](docs/specification/v1.0.0/http-cli.md)
 [![Schema](https://img.shields.io/badge/json--schema-draft--2020--12-informational)](docs/specification/v1.0.0/schemas/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 
-> **HTTP CLI** — A specification for exposing a system's capabilities as a
-> self-describing, help-driven command tree over plain HTTP.
+> **CLI Protocol Family** — self-describing, help-driven command trees that
+> let AI agents explore and operate unfamiliar systems: **HTTP CLI** over
+> plain HTTP, **Web CLI** in web pages, **Android CLI** in Android apps, and
+> **Electron CLI** in desktop apps.
 
-**Status:** Draft · **Version:** [1.0.0](docs/specification/v1.0.0/http-cli.md)
+**Status:** Draft · **Version:** 1.0.0 (all specifications)
 
 English | **[简体中文](README.zh-CN.md)**
 
@@ -17,6 +19,21 @@ documenting the next. This protocol maps that experience onto HTTP — so that
 AI agents (and humans) can explore and operate an unfamiliar system with
 nothing more than an HTTP client and a credential, while spending as little
 context window as possible.
+
+## Protocol family
+
+HTTP CLI is one member of a sibling family sharing one machinery — a
+self-describing command tree, progressive help, one envelope, one error
+model, an auto-increment id identity model, and a bounded, settle-aware
+async model:
+
+| Protocol | Runtime target | Transport | Call surface | Spec |
+|----------|----------------|-----------|--------------|------|
+| **HTTP CLI** | Network service | HTTP | URL-path command tree, `?help` | [v1.0.0](docs/specification/v1.0.0/http-cli.md) |
+| **Web CLI** | Web page runtime | In-page JavaScript | `exec()` / `help()` methods | [v1.0.0](docs/specification/v1.0.0/web-cli.md) |
+| **Android CLI** | Android app runtime | ADB-forwarded bridge | Call objects (`exec` / `help` / `cancel`) | [v1.0.0](docs/specification/v1.0.0/android-cli.md) |
+| **Electron CLI** | Electron app runtime | Loopback HTTP bridge | Call objects (`exec` / `help` / `cancel`) | [v1.0.0](docs/specification/v1.0.0/electron-cli.md) |
+| **CLI Family** | — | — | Shared standard nomenclature & recommended architecture | [v1.0.0](docs/specification/v1.0.0/cli-family.md) |
 
 ## Why
 
@@ -70,8 +87,10 @@ conformance suite, and writing the sync-maintenance contract into
 
 | Document | Description |
 |----------|-------------|
-| [**Specification v1.0.0**](docs/specification/v1.0.0/http-cli.md) | The normative protocol: command tree, help, envelopes, auth, versioning, conformance. |
-| [Schemas](docs/specification/v1.0.0/schemas/) | Machine-readable JSON Schemas for envelopes, help documents, parameter descriptors. |
+| [**HTTP CLI Specification v1.0.0**](docs/specification/v1.0.0/http-cli.md) | The normative protocol: command tree, help, envelopes, auth, versioning, conformance. |
+| [Web / Android / Electron CLI v1.0.0](docs/specification/v1.0.0/) | Sibling specs for web page, Android app, and Electron app runtimes (see the protocol family table above). |
+| [CLI Family v1.0.0](docs/specification/v1.0.0/cli-family.md) | Shared standard nomenclature and recommended implementation architecture. |
+| [Schemas](docs/specification/v1.0.0/schemas/) | Machine-readable JSON Schemas: envelopes, help documents, parameter and component descriptors. |
 | [Changelog](CHANGELOG.md) | Version history and bump rules. |
 | [Contributing](CONTRIBUTING.md) | Change process, versioning policy, style rules. |
 
