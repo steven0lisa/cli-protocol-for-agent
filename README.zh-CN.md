@@ -1,8 +1,8 @@
 # CLI 协议家族
 
-[![规范版本](https://img.shields.io/badge/spec-v1.0.0-blue)](docs/specification/v1.0.0/http-cli.md)
-[![状态](https://img.shields.io/badge/status-draft-orange)](docs/specification/v1.0.0/http-cli.md)
-[![Schema](https://img.shields.io/badge/json--schema-draft--2020--12-informational)](docs/specification/v1.0.0/schemas/)
+[![规范版本](https://img.shields.io/badge/spec-v1.1.0-blue)](docs/specification/v1.1.0/http-cli.md)
+[![状态](https://img.shields.io/badge/status-draft-orange)](docs/specification/v1.1.0/http-cli.md)
+[![Schema](https://img.shields.io/badge/json--schema-draft--2020--12-informational)](docs/specification/v1.1.0/schemas/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 
 [English](README.md) | **简体中文**
@@ -25,11 +25,11 @@ HTTP CLI 是协议家族的一员——四份姊妹规范共享同一套机制�
 
 | 协议 | 目标运行时 | 传输 | 调用面 | 规范 |
 |------|-----------|------|--------|------|
-| **HTTP CLI** | 网络服务 | HTTP | URL 路径命令树 + `?help` | [v1.0.0](docs/specification/v1.0.0/http-cli.md) |
-| **Web CLI** | Web 页面运行时 | 页面内 JavaScript | `exec()` / `help()` 方法 | [v1.0.0](docs/specification/v1.0.0/web-cli.md) |
-| **Android CLI** | Android 应用运行时 | ADB 桥接 | 调用对象（`exec` / `help` / `cancel`） | [v1.0.0](docs/specification/v1.0.0/android-cli.md) |
-| **Electron CLI** | Electron 应用运行时 | 本地回环桥接 | 调用对象（`exec` / `help` / `cancel`） | [v1.0.0](docs/specification/v1.0.0/electron-cli.md) |
-| **CLI 家族** | — | — | 统一标准名词表 + 推荐实践架构 | [v1.0.0](docs/specification/v1.0.0/cli-family.md) |
+| **HTTP CLI** | 网络服务 | HTTP | URL 路径命令树 + `?help` | [v1.1.0](docs/specification/v1.1.0/http-cli.md) |
+| **Web CLI** | Web 页面运行时 | 页面内 JavaScript | `exec()` / `help()` 方法 | [v1.1.0](docs/specification/v1.1.0/web-cli.md) |
+| **Android CLI** | Android 应用运行时 | ADB 桥接 | 调用对象（`exec` / `help` / `cancel`） | [v1.1.0](docs/specification/v1.1.0/android-cli.md) |
+| **Electron CLI** | Electron 应用运行时 | 本地回环桥接 | 调用对象（`exec` / `help` / `cancel`） | [v1.1.0](docs/specification/v1.1.0/electron-cli.md) |
+| **CLI 家族** | — | — | 统一标准名词表 + 推荐实践架构 | [v1.1.0](docs/specification/v1.1.0/cli-family.md) |
 
 （各协议规范正文均为英文。）
 
@@ -84,10 +84,10 @@ GET {base}/version/releases?since=0.1.0 → 自某版本以来的更新
 
 | 文档 | 说明 |
 |------|------|
-| [**HTTP CLI 协议规范 v1.0.0**](docs/specification/v1.0.0/http-cli.md)（英文） | 规范正文：命令树、help、信封、鉴权、版本化、符合性。 |
-| [Web / Android / Electron CLI v1.0.0](docs/specification/v1.0.0/) | 三份姊妹规范：Web 页面、Android 应用、Electron 桌面应用运行时（见上文协议家族表）。 |
-| [CLI 家族 v1.0.0](docs/specification/v1.0.0/cli-family.md) | 统一标准名词表 + 推荐实践架构设计。 |
-| [Schemas](docs/specification/v1.0.0/schemas/) | 机器可读 JSON Schema：信封、help 文档、参数与组件描述符。 |
+| [**HTTP CLI 协议规范 v1.1.0**](docs/specification/v1.1.0/http-cli.md)（英文） | 规范正文：命令树、help、信封、鉴权、版本化、符合性。 |
+| [Web / Android / Electron CLI v1.1.0](docs/specification/v1.1.0/) | 三份姊妹规范：Web 页面、Android 应用、Electron 桌面应用运行时（见上文协议家族表）。 |
+| [CLI 家族 v1.1.0](docs/specification/v1.1.0/cli-family.md) | 统一标准名词表 + 推荐实践架构设计。 |
+| [Schemas](docs/specification/v1.1.0/schemas/) | 机器可读 JSON Schema：信封、help 文档、参数与组件描述符。 |
 | [Changelog](CHANGELOG.md) | 版本历史与升版规则。 |
 | [Contributing](CONTRIBUTING.md) | 变更流程、版本与弃用策略、编辑规范。 |
 

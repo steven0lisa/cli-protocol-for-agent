@@ -19,6 +19,28 @@ non-breaking by construction.
 
 ## [Unreleased]
 
+## [1.1.0] — 2026-10-30
+
+### Added
+
+- **Sibling protocols published alongside HTTP CLI**: Web CLI (in-page
+  command tree with `__WEB_CLI__.exec`/`help`, component descriptors,
+  auto-increment component ids, React/Vue bindings, third-party injection),
+  Android CLI (ADB bridge, View/Compose adapters, `/app` `/view` `/input`
+  `/wait`), Electron CLI (loopback bridge with discovery file, shell +
+  per-window renderer surfaces), and the CLI family document
+  (`cli-family.md`) with the shared nomenclature, the recommended
+  implementation architecture, and the evaluation methodology.
+- Family call/response semantics: `op: "batch"` ordered multi-call;
+  `details.mutation` (`none`/`possible`/`applied`) on failed writes with
+  verify hints; `meta.events` with lingering delivery; `meta.truncated` +
+  `meta.continue` and the `max_chars` parameter; ambiguity hints listing
+  candidates.
+- Site map and API map (Web/Android/Electron CLI): `kind: "route"`/`"api"`
+  descriptors (`path`, `render`, `scope`, `routes`), `/site/map`,
+  `/site/get`, `/site/open`, `/api/map`, `/api/get`, `/api/call`.
+- web-cli Appendix C: agent quick-reference card.
+
 ### Added
 
 - `INSTALL.md`: an agent-facing implementation guide — reading order for the
@@ -48,6 +70,12 @@ non-breaking by construction.
 - README: spec status badges.
 
 ### Changed
+
+- Bounded tree expansion: `depth` defaults to 3 with a maximum of 5 per call
+  (clamped); deeper structure is walked via `parent`; optional leaf folding
+  via `folded`; node budgets report overflow through `meta.truncated`.
+- `AGENTS.md`: protocol change discipline — version bumps and document sync
+  (including the Chinese documents) land in the same change as spec edits.
 
 - Clarified that a bare `?help` parameter requests help; other non-boolean
   values are rejected with `400` / `invalid_param`.

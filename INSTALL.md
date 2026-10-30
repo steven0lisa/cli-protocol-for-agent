@@ -23,15 +23,15 @@ The CLI Protocol Family covers four runtimes. Pick by where the target system
 lives; all four share one machinery — self-describing command tree,
 progressive help, one envelope, descriptor-based semantics, auto-increment
 ids, and a bounded async model (see
-[cli-family.md](docs/specification/v1.0.0/cli-family.md) for the shared
+[cli-family.md](docs/specification/v1.1.0/cli-family.md) for the shared
 nomenclature and recommended architecture).
 
 | Your system is a… | Protocol | Specification | Implementation guide |
 |-------------------|----------|---------------|----------------------|
-| Network service (HTTP API) | **HTTP CLI** | [v1.0.0](docs/specification/v1.0.0/http-cli.md) | **This document (Steps 1–5 below)** |
-| Web page / SPA | **Web CLI** | [v1.0.0](docs/specification/v1.0.0/web-cli.md) | Spec § Integration guide |
-| Android app | **Android CLI** | [v1.0.0](docs/specification/v1.0.0/android-cli.md) | Spec § Integration guide |
-| Electron desktop app | **Electron CLI** | [v1.0.0](docs/specification/v1.0.0/electron-cli.md) | Spec § Integration guide |
+| Network service (HTTP API) | **HTTP CLI** | [v1.1.0](docs/specification/v1.1.0/http-cli.md) | **This document (Steps 1–5 below)** |
+| Web page / SPA | **Web CLI** | [v1.1.0](docs/specification/v1.1.0/web-cli.md) | Spec § Integration guide |
+| Android app | **Android CLI** | [v1.1.0](docs/specification/v1.1.0/android-cli.md) | Spec § Integration guide |
+| Electron desktop app | **Electron CLI** | [v1.1.0](docs/specification/v1.1.0/electron-cli.md) | Spec § Integration guide |
 
 The five steps below walk through **HTTP CLI** in detail. The sibling
 protocols apply the same steps with a different transport and adapters — see
@@ -44,8 +44,8 @@ Read these files in this order and keep them open while you work:
 | # | File | Why |
 |---|------|-----|
 | 1 | [README.md](README.md) | Background and motivation: why a help-driven command tree over HTTP exists. |
-| 2 | [docs/specification/v1.0.0/http-cli.md](docs/specification/v1.0.0/http-cli.md) | **The normative specification.** Everything you build must conform to it. |
-| 3 | [docs/specification/v1.0.0/schemas/](docs/specification/v1.0.0/schemas/) | Machine-readable JSON Schemas for envelopes, help documents, parameters, version surface. |
+| 2 | [docs/specification/v1.1.0/http-cli.md](docs/specification/v1.1.0/http-cli.md) | **The normative specification.** Everything you build must conform to it. |
+| 3 | [docs/specification/v1.1.0/schemas/](docs/specification/v1.1.0/schemas/) | Machine-readable JSON Schemas for envelopes, help documents, parameters, version surface. |
 | 4 | [CHANGELOG.md](CHANGELOG.md) | Spec version history and bump rules. |
 | 5 | [reference/](reference/) | A working, dependency-free reference implementation to learn the mechanics from. |
 | 6 | [conformance/run.py](conformance/run.py) | The black-box suite that will judge your implementation in Step 4. |
@@ -194,8 +194,8 @@ Paste-ready template (fill in the angle-bracket placeholders):
 ```markdown
 ## HTTP CLI maintenance
 
-- Protocol: HTTP CLI Protocol v1.0.0 — spec at
-  `<path>/docs/specification/v1.0.0/http-cli.md` (source of truth).
+- Protocol: HTTP CLI Protocol v1.1.0 — spec at
+  `<path>/docs/specification/v1.1.0/http-cli.md` (source of truth).
 - Command tree registry: `<path to the single registration site>`
 - Help is generated from the dispatch registry — never hand-edit help text.
 - **When adding or changing an API endpoint or service method, register the
@@ -221,7 +221,7 @@ The same five steps apply; here is how each maps onto an in-app protocol:
 
 | Step | HTTP CLI (steps above) | Web / Android / Electron CLI |
 |------|------------------------|------------------------------|
-| 1 Read | `http-cli.md` | The sibling spec + [cli-family.md](docs/specification/v1.0.0/cli-family.md) nomenclature |
+| 1 Read | `http-cli.md` | The sibling spec + [cli-family.md](docs/specification/v1.1.0/cli-family.md) nomenclature |
 | 2 Inventory | API surface → modules → operations | UI surface: screens/windows/components + exposed actions. The descriptor set *is* the inventory — confirm it with the user the same way |
 | 3 Implement | Command tree over HTTP | Install the runtime; register descriptors + function bindings; wire the adapter (React/Vue, View/Compose, web/shell) |
 | 4 Verify | `conformance/run.py` | The spec's conformance checklist probes (`/version/current`, `help /`, `/comp/get` round-trip, write gating) |

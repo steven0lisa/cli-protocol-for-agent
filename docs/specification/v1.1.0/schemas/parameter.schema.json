@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://http-cli.dev/schemas/v1.1.0/parameter.schema.json",
+  "title": "HTTP CLI parameter descriptor",
+  "description": "Schema for one entry of a command Help document's params array. Reserved names help and fields are forbidden.",
+  "type": "object",
+  "required": ["name", "type", "description"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$",
+      "description": "Parameter name. MUST NOT be 'help' or 'fields'."
+    },
+    "type": {
+      "type": "string",
+      "enum": ["string", "integer", "number", "boolean", "enum", "array", "object"],
+      "description": "Declared type. Query-string values are coerced to this type."
+    },
+    "required": {
+      "type": "boolean",
+      "default": false
+    },
+    "default": {
+      "type": "string",
+      "description": "Default value serialized as a string. Absence means no default."
+    },
+    "enum": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Required when type is 'enum'; otherwise must be absent."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "One-line semantics."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "type": { "const": "enum" } },
+        "required": ["type"]
+      },
+      "then": { "required": ["enum"] },
+      "else": { "not": { "required": ["enum"] } }
+    }
+  ],
+  "not": {
+    "anyOf": [
+      { "properties": { "name": { "const": "help" } }, "required": ["name"] },
+      { "properties": { "name": { "const": "fields" } }, "required": ["name"] }
+    ]
+  },
+  "additionalProperties": false
+}

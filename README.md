@@ -1,8 +1,8 @@
 # CLI Protocol Family
 
-[![Spec version](https://img.shields.io/badge/spec-v1.0.0-blue)](docs/specification/v1.0.0/http-cli.md)
-[![Status](https://img.shields.io/badge/status-draft-orange)](docs/specification/v1.0.0/http-cli.md)
-[![Schema](https://img.shields.io/badge/json--schema-draft--2020--12-informational)](docs/specification/v1.0.0/schemas/)
+[![Spec version](https://img.shields.io/badge/spec-v1.1.0-blue)](docs/specification/v1.1.0/http-cli.md)
+[![Status](https://img.shields.io/badge/status-draft-orange)](docs/specification/v1.1.0/http-cli.md)
+[![Schema](https://img.shields.io/badge/json--schema-draft--2020--12-informational)](docs/specification/v1.1.0/schemas/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 
 > **CLI Protocol Family** — self-describing, help-driven command trees that
@@ -29,11 +29,11 @@ async model:
 
 | Protocol | Runtime target | Transport | Call surface | Spec |
 |----------|----------------|-----------|--------------|------|
-| **HTTP CLI** | Network service | HTTP | URL-path command tree, `?help` | [v1.0.0](docs/specification/v1.0.0/http-cli.md) |
-| **Web CLI** | Web page runtime | In-page JavaScript | `exec()` / `help()` methods | [v1.0.0](docs/specification/v1.0.0/web-cli.md) |
-| **Android CLI** | Android app runtime | ADB-forwarded bridge | Call objects (`exec` / `help` / `cancel`) | [v1.0.0](docs/specification/v1.0.0/android-cli.md) |
-| **Electron CLI** | Electron app runtime | Loopback HTTP bridge | Call objects (`exec` / `help` / `cancel`) | [v1.0.0](docs/specification/v1.0.0/electron-cli.md) |
-| **CLI Family** | — | — | Shared standard nomenclature & recommended architecture | [v1.0.0](docs/specification/v1.0.0/cli-family.md) |
+| **HTTP CLI** | Network service | HTTP | URL-path command tree, `?help` | [v1.1.0](docs/specification/v1.1.0/http-cli.md) |
+| **Web CLI** | Web page runtime | In-page JavaScript | `exec()` / `help()` methods | [v1.1.0](docs/specification/v1.1.0/web-cli.md) |
+| **Android CLI** | Android app runtime | ADB-forwarded bridge | Call objects (`exec` / `help` / `cancel`) | [v1.1.0](docs/specification/v1.1.0/android-cli.md) |
+| **Electron CLI** | Electron app runtime | Loopback HTTP bridge | Call objects (`exec` / `help` / `cancel`) | [v1.1.0](docs/specification/v1.1.0/electron-cli.md) |
+| **CLI Family** | — | — | Shared standard nomenclature & recommended architecture | [v1.1.0](docs/specification/v1.1.0/cli-family.md) |
 
 ## Why
 
@@ -87,10 +87,10 @@ conformance suite, and writing the sync-maintenance contract into
 
 | Document | Description |
 |----------|-------------|
-| [**HTTP CLI Specification v1.0.0**](docs/specification/v1.0.0/http-cli.md) | The normative protocol: command tree, help, envelopes, auth, versioning, conformance. |
-| [Web / Android / Electron CLI v1.0.0](docs/specification/v1.0.0/) | Sibling specs for web page, Android app, and Electron app runtimes (see the protocol family table above). |
-| [CLI Family v1.0.0](docs/specification/v1.0.0/cli-family.md) | Shared standard nomenclature and recommended implementation architecture. |
-| [Schemas](docs/specification/v1.0.0/schemas/) | Machine-readable JSON Schemas: envelopes, help documents, parameter and component descriptors. |
+| [**HTTP CLI Specification v1.1.0**](docs/specification/v1.1.0/http-cli.md) | The normative protocol: command tree, help, envelopes, auth, versioning, conformance. |
+| [Web / Android / Electron CLI v1.1.0](docs/specification/v1.1.0/) | Sibling specs for web page, Android app, and Electron app runtimes (see the protocol family table above). |
+| [CLI Family v1.1.0](docs/specification/v1.1.0/cli-family.md) | Shared standard nomenclature and recommended implementation architecture. |
+| [Schemas](docs/specification/v1.1.0/schemas/) | Machine-readable JSON Schemas: envelopes, help documents, parameter and component descriptors. |
 | [Changelog](CHANGELOG.md) | Version history and bump rules. |
 | [Contributing](CONTRIBUTING.md) | Change process, versioning policy, style rules. |
 

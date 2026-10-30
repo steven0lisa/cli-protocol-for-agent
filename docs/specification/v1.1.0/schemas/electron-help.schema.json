@@ -1,0 +1,214 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://electron-cli.dev/schemas/v1.1.0/electron-help.schema.json",
+  "title": "Electron CLI help document",
+  "description": "Shape of the data payload returned by a help operation (op=help) or by an exec on a group node. Discriminated by 'kind'.",
+  "oneOf": [
+    { "$ref": "#/$defs/groupHelp" },
+    { "$ref": "#/$defs/commandHelp" }
+  ],
+  "$defs": {
+    "nodeKind": {
+      "type": "string",
+      "enum": ["group", "command"]
+    },
+    "pathPattern": {
+      "type": "string",
+      "description": "Command path: '/' for the root node, or a chain of naming-rule segments separated by '/'. Help documents emit the canonical leading-slash form; slash-less input paths are normalized to it.",
+      "pattern": "^(/)?$|^/([a-z][a-z0-9_-]*/)*[a-z][a-z0-9_-]*$"
+    },
+    "effects": {
+      "type": "string",
+      "enum": ["none", "read", "write", "varies"]
+    },
+    "deprecated": {
+      "type": "object",
+      "required": ["note"],
+      "properties": {
+        "use_instead": {
+          "type": "string",
+          "description": "Path of the replacement node, if any."
+        },
+        "note": {
+          "type": "string",
+          "description": "Deprecation rationale and removal plan."
+        }
+      },
+      "additionalProperties": false
+    },
+    "childNode": {
+      "type": "object",
+      "required": ["kind", "name", "path", "effects", "summary"],
+      "properties": {
+        "kind": { "$ref": "#/$defs/nodeKind" },
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]*$"
+        },
+        "path": { "$ref": "#/$defs/pathPattern" },
+        "effects": { "$ref": "#/$defs/effects" },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "description": "One-line description."
+        },
+        "deprecated": { "$ref": "#/$defs/deprecated" }
+      },
+      "patternProperties": {
+        "^.*_i18n$": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "parameter": {
+      "type": "object",
+      "required": ["name", "type", "description"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "description": "Parameter name. MUST NOT be a reserved name (help, fields, detail, locale, confirm, timeout). help/detail belong to the help bridge operation; fields/locale/confirm/timeout to exec args."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["string", "integer", "number", "boolean", "enum", "array", "object"]
+        },
+        "required": { "type": "boolean", "default": false },
+        "default": {
+          "description": "Default value, native JSON type. Absence means no default."
+        },
+        "enum": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Required when type is 'enum'; must be absent otherwise."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "One-line semantics."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "type": { "const": "enum" } },
+            "required": ["type"]
+          },
+          "then": { "required": ["enum"] },
+          "else": { "not": { "required": ["enum"] } }
+        }
+      ],
+      "not": {
+        "anyOf": [
+          { "properties": { "name": { "const": "help" } }, "required": ["name"] },
+          { "properties": { "name": { "const": "fields" } }, "required": ["name"] },
+          { "properties": { "name": { "const": "detail" } }, "required": ["name"] },
+          { "properties": { "name": { "const": "locale" } }, "required": ["name"] },
+          { "properties": { "name": { "const": "confirm" } }, "required": ["name"] },
+          { "properties": { "name": { "const": "timeout" } }, "required": ["name"] }
+        ]
+      },
+      "patternProperties": {
+        "^.*_i18n$": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "groupHelp": {
+      "type": "object",
+      "required": ["kind", "path", "name", "summary", "subcommands"],
+      "properties": {
+        "kind": { "const": "group" },
+        "path": { "$ref": "#/$defs/pathPattern" },
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]*$"
+        },
+        "summary": { "type": "string", "minLength": 1 },
+        "description": {
+          "type": "string",
+          "description": "Long form; detail level only."
+        },
+        "subcommands": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/childNode" },
+          "description": "Direct children only (progressive disclosure)."
+        },
+        "usage": { "type": "string" },
+        "protocol_version": {
+          "type": "string",
+          "description": "Root help only: protocol version implemented (semver)."
+        },
+        "runtime_version": {
+          "type": "string",
+          "description": "Root help only: runtime implementation version (semver)."
+        },
+        "adapters": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Root help only: renderer UI toolkits in effect (react, vue, …)."
+        },
+        "origin": {
+          "type": "string",
+          "enum": ["declared", "inferred"],
+          "description": "Root help only: dominant semantics mode."
+        },
+        "capabilities": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Root help only: enabled capabilities (app, win, comp, dom, menu, input, declared, write, wait, …)."
+        },
+        "deprecated": { "$ref": "#/$defs/deprecated" }
+      },
+      "patternProperties": {
+        "^.*_i18n$": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "commandHelp": {
+      "type": "object",
+      "required": ["kind", "path", "name", "effects", "summary"],
+      "properties": {
+        "kind": { "const": "command" },
+        "path": { "$ref": "#/$defs/pathPattern" },
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]*$"
+        },
+        "effects": { "$ref": "#/$defs/effects" },
+        "summary": { "type": "string", "minLength": 1 },
+        "description": {
+          "type": "string",
+          "description": "Long form; detail level only."
+        },
+        "params": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/parameter" }
+        },
+        "examples": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Copy-pasteable request lines; detail level only."
+        },
+        "usage": { "type": "string" },
+        "deprecated": { "$ref": "#/$defs/deprecated" }
+      },
+      "patternProperties": {
+        "^.*_i18n$": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
