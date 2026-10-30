@@ -161,7 +161,7 @@ The wire format is newline-delimited JSON (UTF-8), pipelined:
 | Field | Presence | Description |
 |-------|----------|-------------|
 | `id` | REQUIRED | Caller-chosen correlation string; responses echo it. |
-| `op` | REQUIRED | `exec`, `help`, or `cancel` (OPTIONAL). |
+| `op` | REQUIRED | `exec`, `help`, `batch` (ordered multi-call via `calls`, per [cli-family.md](cli-family.md) §2), or `cancel` (OPTIONAL). |
 | `path` | for `exec`/`help` | Canonical command path; `help` defaults to `/`. |
 | `args` | OPTIONAL | Command arguments (exec only); omitted ⇒ `{}`. |
 | `options` | OPTIONAL | `detail`, `locale` (help); `timeout`; see the async model. |
@@ -768,6 +768,13 @@ pre-write value with success reported. Runtimes that cannot observe commits
 MUST document the weaker guarantee in help; `meta` MAY carry `settled_at`.
 Pixel-level effects may trail the commit — use `/wait/for` for those.
 
+**Failed writes carry their outcome.** When a write call fails with
+`timeout`, `aborted`, or `internal_error`, the error MUST carry
+`details.mutation` (`none` | `possible` | `applied`) and a `hint` stating
+how to verify (see [cli-family.md](cli-family.md) §4). `possible` means do
+not blind-retry: re-read the target (`/view/props`, or the business record)
+before resubmitting.
+
 ---
 
 ## Responses
@@ -784,7 +791,7 @@ Every result is a single JSON object — the family's shared **envelope**
 | Field | Presence | Description |
 |-------|----------|-------------|
 | `data` | REQUIRED | The result: object, array, scalar, or `null`. Help documents are delivered in `data` like any other result. |
-| `meta` | OPTIONAL | Non-semantic metadata: `request_id`, pagination, `locale`, `settled_at`, timing. Clients MUST NOT interpret undocumented `meta` keys. |
+| `meta` | OPTIONAL | Non-semantic metadata: `request_id`, pagination, `locale`, `settled_at`, `truncated`/`continue`, `events`, timing (extended keys per [cli-family.md](cli-family.md) §4). Clients MUST NOT interpret undocumented `meta` keys. |
 
 ### Error envelope
 
@@ -889,13 +896,18 @@ One level of the UI tree — the progressive-help principle applied to trees.
 | Param | Type | Required | Description |
 |-------|------|----------|-------------|
 | `parent` | integer | no | Parent node id; omit for the roots. |
-| `depth` | integer | no | Levels to return (default 1; runtime-documented maximum). |
+| `depth` | integer | no | Levels to return — **default 3, maximum 5 per call** (larger values are clamped, not rejected). |
 | `limit` / `offset` | integer | no | Pagination over the listed level. |
 
 `data`: array of node objects (`id`, `descriptor_id?`, `name`, `adapter?`,
-`origin`, `summary?`, `children_count`, `children?` when `depth` > 1);
-`meta` carries pagination. Depth is deliberately shallow by default: drill
-down with `parent`.
+`origin`, `summary?`, `children_count`, `folded?`, `children?` when
+`depth` > 1); `meta` carries pagination. **Depth is a step size, not a
+coverage knob**: default 3, maximum 5 per call (clamped); deeper structure
+is walked via `parent` under nodes with non-zero `children_count`. Runtimes
+MAY fold childless leaf runs and single-child wrapper chains (marked via
+`folded`; ids stay reachable via `parent` and `/view/find`) and MUST keep
+responses within a documented node budget, setting `meta.truncated` +
+`meta.continue` when exceeded (see [cli-family.md](cli-family.md) §8).
 
 ### `/view/find` (RECOMMENDED)
 

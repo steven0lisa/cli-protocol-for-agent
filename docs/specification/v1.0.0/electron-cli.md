@@ -163,7 +163,7 @@ the JSON response body.
 | Field | Presence | Description |
 |-------|----------|-------------|
 | `id` | REQUIRED | Caller-chosen correlation string; responses echo it. |
-| `op` | REQUIRED | `exec`, `help`, or `cancel` (OPTIONAL). |
+| `op` | REQUIRED | `exec`, `help`, `batch` (ordered multi-call via `calls`, per [cli-family.md](cli-family.md) §2), or `cancel` (OPTIONAL). |
 | `path` | for `exec`/`help` | Canonical command path; `help` defaults to `/`. |
 | `args` | OPTIONAL | Command arguments (`exec` only); omitted ⇒ `{}`. |
 | `options` | OPTIONAL | `detail`, `locale` (help); `timeout`; see the async model. |
@@ -791,6 +791,13 @@ observe commits MUST document the weaker guarantee in help; `meta` MAY carry
 `settled_at`. Pixel-level effects may trail the commit — use `/wait/for` for
 those.
 
+**Failed writes carry their outcome.** When a write call fails with
+`timeout`, `aborted`, or `internal_error`, the error MUST carry
+`details.mutation` (`none` | `possible` | `applied`) and a `hint` stating
+how to verify (see [cli-family.md](cli-family.md) §4). `possible` means do
+not blind-retry: re-read the target (`/comp/props`, or the business record)
+before resubmitting.
+
 ---
 
 ## Responses
@@ -807,7 +814,7 @@ Every result is a single JSON object — the family's shared **envelope**
 | Field | Presence | Description |
 |-------|----------|-------------|
 | `data` | REQUIRED | The result: object, array, scalar, or `null`. Help documents are delivered in `data` like any other result. |
-| `meta` | OPTIONAL | Non-semantic metadata: `request_id`, pagination, `locale`, `settled_at`, timing. Clients MUST NOT interpret undocumented `meta` keys. |
+| `meta` | OPTIONAL | Non-semantic metadata: `request_id`, pagination, `locale`, `settled_at`, `truncated`/`continue`, `events`, timing (extended keys per [cli-family.md](cli-family.md) §4). Clients MUST NOT interpret undocumented `meta` keys. |
 
 ### Error envelope
 

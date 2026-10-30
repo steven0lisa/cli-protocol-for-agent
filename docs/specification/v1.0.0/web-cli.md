@@ -165,6 +165,7 @@ globalThis.__WEB_CLI__ = {
 | `protocol_version` | REQUIRED | Semver string of the protocol the runtime implements. |
 | `exec` | REQUIRED | `(path: string, args?: object, options?: object) => Promise<Envelope>`. Command execution; never returns help. |
 | `help` | REQUIRED | `(path?: string, options?: object) => Promise<Envelope>`. Help retrieval for any node; `path` defaults to the root. |
+| `batch` | OPTIONAL | `(calls: Array<{path, args?, options?}>) => Promise<Envelope[]>`. Ordered multi-call in one bridge round-trip; per-call envelope semantics (see [cli-family.md](cli-family.md) §2). |
 | `authorize` | OPTIONAL | Handshake for token-gated runtimes (see [Security considerations](#security-considerations)). |
 
 - The binding MUST be a plain data-and-function object on `globalThis`; it
@@ -797,6 +798,13 @@ observe commits MUST document the weaker guarantee in help; `meta` MAY carry
 `settled_at` for timing-sensitive clients. UI-visible effects (pixels on
 screen) may trail the commit — use `/wait/for` for those.
 
+**Failed writes carry their outcome.** When a write call fails with
+`timeout`, `aborted`, or `internal_error`, the error MUST carry
+`details.mutation` (`none` | `possible` | `applied`) and a `hint` stating
+how to verify (see [cli-family.md](cli-family.md) §4). `possible` means do
+not blind-retry: re-read the target (`/comp/props`, or the business record)
+before resubmitting.
+
 ---
 
 ## Responses
@@ -816,7 +824,7 @@ shape to the HTTP CLI envelope (`schemas/envelope.schema.json`):
 | Field | Presence | Description |
 |-------|----------|-------------|
 | `data` | REQUIRED | The result: object, array, scalar, or `null`. Help documents are delivered in `data` like any other result. |
-| `meta` | OPTIONAL | Non-semantic metadata: `request_id`, pagination, `locale`, timing. Clients MUST NOT interpret undocumented `meta` keys. |
+| `meta` | OPTIONAL | Non-semantic metadata: `request_id`, pagination, `locale`, `settled_at`, `truncated`/`continue`, `events`, timing (extended keys per [cli-family.md](cli-family.md) §4). Clients MUST NOT interpret undocumented `meta` keys. |
 
 ### Error envelope
 
@@ -861,6 +869,8 @@ An error result MUST NOT contain `data`; a success result MUST NOT contain
 
 - `unknown_command` errors MUST include a `hint` pointing at the nearest valid
   `help()` call (e.g. `help('/comp') to see available subcommands`).
+- Ambiguous or missing lookups SHOULD list up to 5 candidates (`id` + `name`)
+  in `hint`, so the caller recovers in one step.
 - Implementations MAY add custom codes; custom codes MUST NOT reuse a standard
   code with a different meaning. Component-level codes SHOULD be namespaced
   (`note/not_found`) and MUST be documented in the owning descriptor's
@@ -957,13 +967,32 @@ applied to trees.
 | Param | Type | Required | Description |
 |-------|------|----------|-------------|
 | `parent` | integer | no | Parent component id; omit for the roots. |
-| `depth` | integer | no | Levels to return (default 1; runtime-documented maximum). |
+| `depth` | integer | no | Levels to return — **default 3, maximum 5 per call** (larger values are clamped, not rejected). |
 | `limit` / `offset` | integer | no | Pagination over the listed level. |
 
 `data`: array of node objects (`id`, `descriptor_id?`, `name`, `origin`,
-`summary?`, `children_count`, `children?` when `depth` > 1); `meta` carries
-pagination. Depth is deliberately shallow by default: drill down with
-`parent`, exactly as help drills down one level at a time.
+`summary?`, `children_count`, `folded?`, `children?` when `depth` > 1);
+`meta` carries pagination.
+
+**Depth is a step size, not a coverage knob.** Real pages run 15–35
+component levels deep, so `depth` is capped at 5 per call and defaults to 3
+— one call then renders the page skeleton (page → main regions → region
+contents). Deeper structure is reached by drilling: enumerate a level, then
+re-issue `/comp/tree {parent: …, depth: …}` under nodes whose
+`children_count` is non-zero, exactly as help drills down one level at a
+time. Tree roots are RECOMMENDED to be the page-level component(s);
+framework and router shells MAY be omitted from presentation.
+
+**Bounded responses (leaf folding).** Design-system leaves (buttons, icons,
+tooltips) dominate real trees — an unfolded 5-level expansion can exceed 300
+nodes. Runtimes MAY fold two patterns: runs of childless leaves (reported
+via their parent's `folded` count instead of individual rows) and
+single-child wrapper chains (presented as the outermost node, with `folded`
+counting the hidden wrappers). `children_count` always reports the true
+count; folded nodes keep their ids and remain reachable via `parent` and
+`/comp/find`. Runtimes that fold MUST document the policy in help; every
+response MUST stay within a documented node budget (RECOMMENDED ≤ 100
+nodes), and exceeding it sets `meta.truncated` with `meta.continue`.
 
 ### `/comp/find` (RECOMMENDED)
 
@@ -1173,6 +1202,11 @@ An agent may install a runtime into a page it does not own (via
   without registered bindings.
 - Injected runtimes SHOULD be token-gated and read-only by default (see
   Security).
+- **Frames and shadow DOM.** Cross-origin iframes are separate documents —
+  each needs its own kernel and its own id sequence. Same-origin iframes
+  join the document's id space. Open shadow roots are traversable via
+  `/dom/query`; closed shadow roots are unreachable and simply absent from
+  the tree.
 
 ---
 
@@ -1304,6 +1338,10 @@ A conformant runtime:
 - [ ] Assigns auto-increment ids at first discovery, never reuses them within
       a page document, and fails dead ones with `stale_id` plus a re-query
       hint.
+- [ ] Bounds tree expansion: `depth` clamped to ≤ 5 (default 3), a documented
+      node budget honored (overflow ⇒ `meta.truncated` + `meta.continue`),
+      and any leaf folding marked via `folded` without losing id
+      reachability.
 - [ ] Bounds every async operation (thenable returns, `/wait/for`) with a
       documented `timeout` and fails with `timeout`; never hangs a call
       indefinitely; settles aborted calls with `aborted`.
@@ -1423,3 +1461,44 @@ normative.
 | Declared vs inferred | Whether a node's semantics come from an authored descriptor or from runtime introspection alone. |
 | Binding | The in-memory callable behind a documented `functions[].name`. |
 | Profile | A runtime configuration deciding which capabilities are enabled (e.g. development-full vs production-read). |
+
+## Appendix C: agent quick-reference card (informative)
+
+One-page working pattern — copy and adapt; prefer examples over prose.
+
+```js
+// 0. Detect (fall back to DOM scripting when absent)
+const cli = globalThis.__WEB_CLI__;
+const ok = cli && typeof cli.exec === "function" && typeof cli.help === "function";
+
+// 1. Negotiate, then map
+const v = await cli.exec("/version/current");   // capabilities, origin
+await cli.help("/");                            // top-level groups
+await cli.help("/comp");                        // drill one level at a time
+
+// 2. Explore: shallow by default, drill via parent (depth is capped per call)
+const roots = await cli.exec("/comp/tree", { depth: 1, fields: "id,name,summary,children_count" });
+const kids  = await cli.exec("/comp/tree", { parent: roots.data[0].id, depth: 2 });
+
+// 3. Learn what it is, then read live values — always project
+const d = await cli.exec("/comp/get",   { id: 7, fields: "descriptor" });
+const p = await cli.exec("/comp/props", { id: 7, fields: "text,enabled" });
+
+// 4. Batch independent reads; wait instead of sleeping
+const [w, q] = await cli.batch([
+  { path: "/wait/for",   args: { id: 7, state: "visible", timeout: 3000 } },
+  { path: "/comp/props", args: { id: 7, fields: "text" } },
+]);
+
+// 5. Write deliberately — confirm is mandatory; never blind-retry a failed write
+const r = await cli.exec("/comp/set", { id: 7, props: { size: "lg" }, confirm: true });
+// if r.error: read r.error.details.mutation ("possible" ⇒ verify before resubmitting)
+
+// 6. Honor truncation and the event log
+if (r.meta?.truncated) { /* follow r.meta.continue to fetch the remainder */ }
+for (const e of r.meta?.events ?? []) { /* navigation / dialog / network_error … */ }
+```
+
+Rules of thumb: ids are identities (re-query after `stale_id`, never
+construct); `fields=` everywhere; one `batch` beats many round-trips; a
+`timeout` on a write is *not* "nothing happened" — check `details.mutation`.

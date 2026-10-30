@@ -103,8 +103,9 @@ conceptual shape of every in-app call):
 | Field | Presence | Meaning |
 |-------|----------|---------|
 | `id` | REQUIRED | Caller-chosen correlation string; responses echo it |
-| `op` | REQUIRED | `exec`, `help`, or `cancel` |
+| `op` | REQUIRED | `exec`, `help`, `batch`, or `cancel` |
 | `path` | for `exec`/`help` | Canonical command path; `help` defaults to `/` |
+| `calls` | for `batch` | Array of `exec`/`help` call objects, each with its own `id` |
 | `args` | OPTIONAL | Command arguments (`exec` only) |
 | `options` | OPTIONAL | `detail`, `locale` (help), `timeout`, `signal` |
 | `token` | OPTIONAL | Session secret for token-gated runtimes |
@@ -112,6 +113,20 @@ conceptual shape of every in-app call):
 HTTP CLI binds the same call concept to HTTP (method + URL path + query
 body); Web CLI binds it to method calls (`exec(path, args, options)`,
 `help(path, options)`).
+
+**Batch calls (`op: "batch"`).** One call object may carry `calls`, an array
+of `exec`/`help` call objects, each with its own `id`; the batch's own `id`
+correlates the response. The response `data` is an array of per-call results
+in submission order — `{"id": …, "data"|"error": …}` — and each keeps its
+full envelope semantics: a failing call does not abort its siblings, and
+write calls still require `confirm: true` each. Batching saves transport
+round-trips: the fixed cost of a call (framing, bridging, context re-entry)
+is paid once per batch instead of once per call, which is the dominant
+overhead when a driver crosses a process or tool boundary. Runtimes MUST
+bound `calls` length (documented; RECOMMENDED ≤ 20) and MUST NOT interleave
+a batch's effectful calls with another batch's. Web CLI binds this as an
+OPTIONAL `batch` entry-point method; Android and Electron CLI use
+`op: "batch"` on the wire.
 
 ## 3. Reserved parameter names
 
@@ -150,9 +165,47 @@ exclusive.
 | `meta.locale` | OPTIONAL | Locale applied to the result |
 | `meta.settled_at` | OPTIONAL | Settle timestamp (in-app protocols) |
 | `meta.elapsed_ms` | OPTIONAL | Wall-clock duration of the call |
+| `meta.truncated` | OPTIONAL | `true` when the result was cut short; `meta.continue` then says how to read the rest |
+| `meta.continue` | OPTIONAL | Continuation hint — e.g. `{"offset": 40}` or `{"keys": ["body"]}` — fetching the remainder |
+| `meta.events` | OPTIONAL | Changes observed during the call (see the events block below) |
+
+**`meta.events`** (RECOMMENDED on writes; MAY on reads) reports changes the
+runtime observed during the call, so callers need not hand-roll listeners:
+
+```json
+"events": [
+  { "type": "navigation",   "url": "https://app.example.com/notes/7" },
+  { "type": "dialog",       "message": "Delete this note?", "action": "dismissed" },
+  { "type": "new_child",    "kind": "frame", "name": "preview" },
+  { "type": "network_error","url": "/api/notes", "status": 504 },
+  { "type": "console_error","message": "Failed to load resource" }
+]
+```
+
+Event `type` vocabulary (RECOMMENDED): `navigation`, `dialog`, `new_child`,
+`network_error`, `console_error`; runtimes MAY add types and clients MUST
+ignore unknown ones. Events that surface **after** the call has settled
+(e.g. a late request failure) MUST be delivered in the next call's
+`meta.events` — a late failure is never silently dropped.
 
 Error `details` keys in standard use: `parameter`, `id`, `elapsed_ms`,
-`pending`.
+`pending`, `mutation`.
+
+**Write-outcome uncertainty (`details.mutation`).** For commands with
+`effects: "write"` (or `varies` resolving to a write), a failure with
+`timeout`, `aborted`, or `internal_error` MUST include `details.mutation`:
+
+| Value | Meaning |
+|-------|---------|
+| `none` | The mutation was never dispatched — safe to retry. |
+| `possible` | Dispatched; outcome unknown — do **not** blind-retry; verify first. |
+| `applied` | The mutation committed before the failure — do **not** retry. |
+
+The accompanying `hint` MUST state the verification path (read the target
+back, check the business record, reuse an idempotency key). Success
+envelopes are produced only after the settle guarantee, so successful writes
+need no flag; this field exists to stop "the call failed, so nothing
+happened" reasoning on *failed* writes.
 
 ## 5. Help document field names (shared)
 
@@ -237,6 +290,7 @@ Top level:
 | `origin` | REQUIRED | `declared` \| `inferred` |
 | `summary` | iff descriptor | One-line purpose from the descriptor |
 | `children_count` | tree nodes | Direct child count (`children_count` may be provisional on `pending` nodes) |
+| `folded` | tree nodes | Live nodes hidden by leaf folding under this presentation node; hidden ids stay reachable via `parent`/`find` |
 | `status` | OPTIONAL | `ready` \| `pending` (async boundary) |
 | `adapter` | OPTIONAL | Toolkit the node came from (`react`, `vue`, `view`, `compose`, …) |
 
@@ -250,7 +304,7 @@ Window objects (Electron) add: `title`, `kind` (`main|auxiliary|tray|hidden`),
 |------|------|---------|---------|
 | `id` | integer | Target object id (the universal targeting key) | all targeting commands |
 | `parent` | integer | Tree parent id | `comp/tree`, `comp/find`, `view/tree`, `view/find` |
-| `depth` | integer | Tree levels to return (default 1) | `*/tree` |
+| `depth` | integer | Tree levels to return — default 3, max 5 per call (clamped); deeper via `parent` drill | `*/tree` |
 | `keys` | array | Restrict prop/state read to these names | `*/props`, `*/state` |
 | `function` | string | Function name to invoke | `*/call` |
 | `args` | object | Arguments for the invoked function | `*/call` |
@@ -262,6 +316,7 @@ Window objects (Electron) add: `title`, `kind` (`main|auxiliary|tray|hidden`),
 | `scope` | integer | Subtree scope by id (`dom/query`); or `app`\|`tray` (`menu`) | `dom/query`, `menu/*` |
 | `name` / `tag` | string | Name substring / descriptor tag filter | `*/find` |
 | `limit` / `offset` / `page` / `cursor` | integer | Pagination | all list commands |
+| `max_chars` | integer | Bound the serialized size of one result; a runtime that cuts MUST set `meta.truncated` + `meta.continue` | object-returning commands |
 | `fields` | string | Comma-separated projection whitelist (reserved) | all |
 | `detail` | boolean | Help detail level (reserved) | `help` |
 | `locale` | string | BCP-47 locale selection (reserved) | all |
@@ -327,6 +382,11 @@ HTTP-transport-only codes: `bad_body`, `method_not_allowed`,
 `payload_too_large`, `unsupported_media_type`, `rate_limited`,
 `unauthorized` (401 distinct from `forbidden`).
 
+Error hints teach recovery: `unknown_command` hints at the nearest `help`
+call; an ambiguous or missing lookup (`not_found`, `invalid_param` on a
+selector) SHOULD list up to 5 candidates (`id` + `name`) in `hint`, so the
+caller can recover in one step instead of re-exploring.
+
 ## 11. Enumerated value vocabularies
 
 | Vocabulary | Values | Notes |
@@ -356,7 +416,7 @@ Shared command names (MUST keep these meanings where they exist):
 | Path | Meaning |
 |------|---------|
 | `/version/current` | Protocol/implementation versions, `origin`, `capabilities` |
-| `/comp/tree`, `/view/tree` | One level of the UI tree (`parent`, `depth`) |
+| `/comp/tree`, `/view/tree` | One level of the UI tree (`parent`, `depth` — default 3, max 5 per call, drill via `parent`) |
 | `/comp/find`, `/view/find` | Flat search (`id`, `parent`, `name`, `text`, `tag`, `prop`) |
 | `/comp/get`, `/view/get` | Descriptor + live data for one id |
 | `/comp/props`, `/view/props` | Live prop values (`id`, `keys`) |
@@ -499,8 +559,36 @@ Main process (shell)
 - [ ] Settle guarantee documented and honored (or explicitly weakened).
 - [ ] Token gate wherever the transport is reachable beyond the caller.
 - [ ] Conformance suite runs black-box against the protocol surface.
+- [ ] Tree expansions are bounded: depth cap ≤ 5 (default 3), documented
+      node budget (overflow ⇒ `meta.truncated` + `meta.continue`), leaf
+      folding marked via `folded` and never removing id reachability.
 
 ---
+
+## 19. Evaluation methodology (informative)
+
+How to measure whether a family implementation actually saves tokens and
+fails safely (the shape used by serious browser-tooling evaluations):
+
+- **Paired design.** Same host, model, and settings; interleaved,
+  pre-registered run order; ≥25 tasks × ≥3 rounds per arm; blind judging.
+  Report paired ratios (geometric mean + task-clustered interval), not just
+  totals.
+- **Input accounting.** Report total input *including* cache, uncached
+  input, and — the unit that exposes return-shaping wins — **input per
+  tool-call**. Also tool-call count, wall-clock, and cache-hit rate.
+- **Count the bad outcomes, not just successes.** False success (program
+  returned, business step incomplete), blind retries after a failed write,
+  and recovery rate after injected failures all belong in the table.
+- **Controlled micro-tests** isolate one mechanism each: moved target
+  (late binding), duplicate label (ambiguity hint), occluded control
+  (actionability), delayed commit (settle), timed-out write
+  (`details.mutation`), stale id (`stale_id`).
+- **Trajectory audits.** Classify how agents recover from refusals and
+  failures (tighten query / pick by id / re-observe / escalate to user).
+- **Subset honesty.** A benchmark subset must be disclosed as a subset
+  (e.g. "25 of 100 tasks"); accuracy gates that are not met downgrade the
+  numbers to descriptive.
 
 ## Versioning
 
@@ -516,10 +604,12 @@ MAJOR change and requires the affected protocol specs to move in lockstep.
 | `aborted` | error code | §10 |
 | `adapters` | help/version field | §5 |
 | `args` | call-object / param | §2, §8 |
+| `batch` / `calls` | op / call-object field | §2 |
 | `cancel` | op | §2 |
 | `children_count` | node field | §7 |
 | `confirm` | reserved param | §3 |
 | `confirm_required` | error code | §10 |
+| `continue` | meta field | §4 |
 | `data` / `meta` / `error` | envelope fields | §4 |
 | `declared` / `inferred` | `origin` values | §11 |
 | `depth` | param | §8 |
@@ -527,8 +617,10 @@ MAJOR change and requires the affected protocol specs to move in lockstep.
 | `detail` | reserved param | §3 |
 | `effects` | help/descriptor field | §5, §6 |
 | `enum` | param field | §5 |
+| `events` | meta field | §4 |
 | `exec` | method / op | §2 |
 | `fields` | reserved param | §3 |
+| `folded` | node field | §7, §12 |
 | `functions` | descriptor field | §6 |
 | `help` | method / op / reserved param | §2, §3 |
 | `hint` | envelope field | §4 |
@@ -539,7 +631,9 @@ MAJOR change and requires the affected protocol specs to move in lockstep.
 | `kind` | help/descriptor field | §5, §6, §11 |
 | `limit` / `offset` / `page` / `cursor` | pagination params | §3, §8 |
 | `locale` | reserved param | §3 |
+| `max_chars` | recommended param | §8 |
 | `message` / `code` / `details` | envelope fields | §4 |
+| `mutation` | error details key | §4 |
 | `name` | param / field | §5–§8 |
 | `not_found` | error code | §10 |
 | `offset` | param | §8 |
@@ -563,6 +657,7 @@ MAJOR change and requires the affected protocol specs to move in lockstep.
 | `text` | param | §8 |
 | `timeout` | reserved param / error code | §3, §10 |
 | `token` | call-object field | §2 |
+| `truncated` | meta field | §4 |
 | `unknown_command` | error code | §10 |
 | `usage` / `examples` | help fields | §5 |
 | `value` / `prop` | params | §8 |
